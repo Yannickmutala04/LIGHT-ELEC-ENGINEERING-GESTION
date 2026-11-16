@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LIGHT ELEC ENGINEERING — Gestion</title>
+  <style>
+    :root{--n:#0b1f3a;--n2:#16376a;--a:#f5b301;--bg:#eef1f6;--t:#1b2433;--m:#66728a}
+    *{box-sizing:border-box}body{margin:0;font:15px Arial,sans-serif;background:var(--bg);color:var(--t)}
+    button,input,select,textarea{font:inherit}h1,h2,h3{font-family:Arial,sans-serif;letter-spacing:.02em}
+    h2{font-size:30px;margin:0 0 10px;color:var(--n)}h3{font-size:21px;margin:16px 0 6px;color:var(--n)}
+    .lg{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,var(--n),var(--n2))}
+    .card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 8px #0b1f3a1a}.lg .card{width:min(420px,92vw)}
+    .shell{display:flex;min-height:100vh}nav{width:236px;background:var(--n);color:#cfd8e8;padding:16px;display:flex;flex-direction:column;gap:4px}
+    nav .brand{color:var(--a);font-size:24px;line-height:1.1;margin-bottom:14px}
+    nav a{padding:9px 12px;border-radius:8px;cursor:pointer}nav a:hover{background:var(--n2)}nav a.on{background:var(--a);color:var(--n);font-weight:600}
+    main{flex:1;padding:24px;min-width:0}
+    label{display:block;margin:9px 0;font-size:13px;color:var(--m)}
+    input,select,textarea{display:block;width:100%;padding:8px;border:1px solid #cfd6e3;border-radius:6px;margin-top:3px;background:#fff;color:var(--t)}
+    .btn{background:var(--a);color:var(--n);border:0;padding:9px 15px;border-radius:8px;font-weight:700;cursor:pointer;margin:6px 6px 6px 0}
+    .b2{background:#fff;border:1px solid #cfd6e3;padding:9px 14px;border-radius:8px;cursor:pointer;display:inline-block;margin:6px 6px 6px 0;color:var(--t)}
+    .mu{color:var(--m)}.ok{color:#1e8449;font-weight:700}
+    .sc{overflow-x:auto;background:#fff;border-radius:10px;margin:8px 0;box-shadow:0 1px 8px #0b1f3a1a}
+    table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid #e3e8f0;text-align:left}th{font-size:13px;color:var(--m);font-weight:700}
+    .k{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:10px 0}.k b{display:block;font-size:28px;font-weight:700;color:var(--n)}
+    @media(max-width:780px){.shell{flex-direction:column}nav{width:auto;flex-direction:row;flex-wrap:wrap}nav .brand{width:100%;margin:0}}
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),LS='le_db',E=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),uid=()=>Math.random().toString(36).slice(2,9);
+const R={adm:'Bureau administratif',fin:'Gestion finance',rh:'Gestion ressources humaines',dg:'Direction générale'};
+const M=[['dash','📊 Tableau de bord','adm fin rh dg'],['emp','👷 Employés','adm rh'],['hrs','⏱ Heures','adm rh'],['fin','💰 Finance','adm fin'],['pay','🧾 Paie','adm fin'],['msg','✉ Messages','adm fin rh dg'],['proj','🏗 Projets','adm'],['dg','🏛 Direction','adm dg'],['adm','🗂 Administration','adm']];
+let db,me=null,tab='dash';
+const today=()=>new Date().toISOString().slice(0,10);
+const H=async s=>{const b=new TextEncoder().encode(s);const d=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')};
+const nm=id=>(db.emp.find(e=>e.id==id)||{}).nom||'—';
+function init(){
+  const raw=localStorage.getItem(LS); db=raw?JSON.parse(raw):{set:{name:'LIGHT ELEC ENGINEERING',cur:'USD',soc:5,tax:3,hrs:173.33,ot:1.5},users:[],emp:[],hrs:[],tx:[],pay:[],notes:[],log:[]};
+  if(!db.users.length){db.users.push({id:uid(),login:'admin',role:'adm',pw:crypto?null:null});}
+  if(!db.users.find(u=>u.login=='admin')) db.users.push({id:uid(),login:'admin',role:'adm',pw:null});
+  if(!db.emp) db.emp=[]; if(!db.hrs) db.hrs=[]; if(!db.tx) db.tx=[]; if(!db.pay) db.pay=[]; if(!db.notes) db.notes=[]; if(!db.log) db.log=[];
+  if(!db.users.some(u=>u.pw)){db.users=db.users.map(u=>({ ...u, pw: u.login=='admin' ? '1234' : '1234'}));}
+  if(!db.users.some(u=>u.login=='admin')){db.users.unshift({id:uid(),login:'admin',role:'adm',pw:'1234'});}
+}
+const save=()=>localStorage.setItem(LS,JSON.stringify(db));
+const T=(h,r)=>`<div class=sc><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.length?`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`:`<tr><td colspan=${h.length} class=mu>Aucune donnée</td></tr>`}</table></div>`;
+const K=(a,b)=>`<div class=card><span class=mu>${a}</span><b>${b}</b></div>`;
+const money=v=>`${Number(v||0).toLocaleString('fr-FR',{maximumFractionDigits:2})} ${db.set.cur||'USD'}`;
+function loginView(){
+  return `<div class=lg><div class=card><h1 style="color:var(--n);margin:0 0 12px;font-size:32px">⚡ ${E(db.set.name)}</h1><p class=mu>Application de gestion</p><label>Identifiant<input id=l autofocus></label><label>Mot de passe<input id=p type=password onkeydown="if(event.key==='Enter')login()"></label><button class=btn style="width:100%" onclick="login()">Se connecter</button><p id=er style="color:#c0392b"></p><p class=mu style="font-size:12px">Compte de démonstration : admin / 1234</p></div></div>`;
+}
+async function login(){
+  const u=db.users.find(x=>x.login==$('#l').value.trim()&&x.pw==$('#p').value.trim());
+  if(!u){ $('#er').textContent='Identifiant ou mot de passe incorrect.'; return; }
+  me=u; render();
+}
+function render(){
+  if(!me){ $('#app').innerHTML=loginView(); return; }
+  const m=M.filter(x=>x[2].includes(me.role));
+  if(!m.some(x=>x[0]==tab)) tab=m[0][0];
+  $('#app').innerHTML=`<div class=shell><nav><div class=brand>⚡ ${E(db.set.name)}</div>${m.map(x=>`<a class="${x[0]==tab?'on':''}" onclick="tab='${x[0]}';render()">${x[1]}</a>`).join('')}<div style="margin-top:auto;font-size:13px"><div>${E(me.login)} — ${R[me.role]}</div><a onclick="me=null;render()">⏻ Déconnexion</a></div></nav><main>${views[tab]()}</main></div>`;
+}
+const views={
+  dash:()=>`<h2>Tableau de bord</h2><div class=k>${K('Employés actifs', (db.emp.filter(e=>e.st=='Actif')).length)}${K('Recettes', money(db.tx.filter(x=>x.ty=='R').reduce((a,x)=>a+Number(x.m||0),0)))}${K('Dépenses', money(db.tx.filter(x=>x.ty=='D').reduce((a,x)=>a+Number(x.m||0),0)))}${K('Projets', db.proj?db.proj.length:0)}</div>`,
+  emp:()=>`<h2>Employés</h2><button class=btn onclick="addEmp()">+ Ajouter</button>`+T(['Nom','Poste','Département','Statut',''], (db.emp||[]).map(e=>[E(e.nom),E(e.poste),E(e.dept),E(e.st),`<a onclick="editEmp('${e.id}')">Modifier</a>`])),
+  hrs:()=>`<h2>Heures</h2><button class=btn onclick="addHrs()">+ Saisir</button>`+T(['Date','Employé','Normale','Sup.',''], (db.hrs||[]).map(x=>[x.d,E(nm(x.e)),x.h||0,x.o||0,`<a onclick="del('hrs','${x.id}')">Supprimer</a>`])),
+  fin:()=>`<h2>Finance</h2><button class=btn onclick="addTx()">+ Nouvelle opération</button>`+T(['Date','Type','Libellé','Montant',''], (db.tx||[]).map(x=>[x.d,x.ty=='R'?'Recette':'Dépense',E(x.lib),money(x.m),`<a onclick="del('tx','${x.id}')">Supprimer</a>`])),
+  pay:()=>`<h2>Paiement</h2>`+T(['Employé','Salaire','Net',''], (db.emp||[]).map(e=>[E(e.nom),money(e.base||0),money((e.base||0)*1),`<a>OK</a>`])),
+  msg:()=>`<h2>Messages</h2>`+T(['Date','Titre','Message',''], (db.notes||[]).map(n=>[n.d,E(n.t),E(n.x),`<a onclick="del('notes','${n.id}')">Supprimer</a>`])),
+  proj:()=>`<h2>Projets</h2><button class=btn onclick="addProj()">+ Nouveau projet</button>`+T(['Projet','Client','Statut',''], (db.proj||[]).map(p=>[E(p.n),E(p.cl),E(p.st),`<a onclick="del('proj','${p.id}')">Supprimer</a>`])),
+  dg:()=>`<h2>Direction</h2>`+T(['Date','Titre','Décision',''], (db.notes||[]).map(n=>[n.d,E(n.t),E(n.x),`<a onclick="del('notes','${n.id}')">Supprimer</a>`])),
+  adm:()=>`<h2>Bureau administratif</h2><button class=btn onclick="addUser()">+ Utilisateur</button>`+T(['Identifiant','Bureau',''], (db.users||[]).map(u=>[E(u.login),E(R[u.role]||u.role),`<a onclick="del('users','${u.id}')">Supprimer</a>`]))
+};
+function addEmp(){const id=uid(); db.emp.push({id,nom:'Nouvel employé',poste:'',dept:'',st:'Actif',base:0}); save(); render();}
+function editEmp(id){const e=db.emp.find(x=>x.id==id); const name=prompt('Nom complet',e.nom||''); if(name===null) return; e.nom=name; e.poste=prompt('Poste',e.poste||'')||e.poste; e.dept=prompt('Département',e.dept||'')||e.dept; e.st=prompt('Statut (Actif/Suspendu/Sorti)',e.st||'Actif')||e.st; save(); render();}
+function addHrs(){const employee=prompt('ID employé',db.emp[0]?.id||''); if(!employee) return; db.hrs.push({id:uid(),e:employee,d:today(),h:8,o:0,a:0,n:''}); save(); render();}
+function addTx(){const lib=prompt('Libellé',''); if(lib===null) return; const m=Number(prompt('Montant', '0')); const type=prompt('Type (R/D)', 'R')||'R'; db.tx.push({id:uid(),d:today(),ty:type.toUpperCase(),lib,m}); save(); render();}
+function addProj(){const n=prompt('Nom du projet',''); if(!n) return; db.proj=db.proj||[]; db.proj.push({id:uid(),n,cl:'',st:'À faire'}); save(); render();}
+function addUser(){const login=prompt('Identifiant',''); if(!login) return; db.users.push({id:uid(),login,role:'rh',pw:'1234'}); save(); render();}
+function del(k,id){if(confirm('Supprimer cet élément ?')){db[k]=db[k].filter(x=>x.id!=id); save(); render();}}
+init(); render();
+</script>
+</body>
+</html>
